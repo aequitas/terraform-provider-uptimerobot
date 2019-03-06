@@ -8,6 +8,12 @@ provider "uptimerobot" {
   api_key = "[YOUR MAIN API KEY]"
 }
 
+data "uptimerobot_account" "account" {}
+
+data "uptimerobot_alert_contact" "default_alert_contact" {
+  email = "${uptimerobot_account.email}"
+}
+
 resource "uptimerobot_alert_contact" "slack" {
   friendly_name = "Slack Alert"
   type          = "slack"
@@ -25,6 +31,10 @@ resource "uptimerobot_monitor" "main" {
     id = "${resource.uptimerobot_alert_contact.slack.id}"
     # threshold  = 0  # pro only
     # recurrence = 0  # pro only
+  }
+
+  alert_contact {
+    id = "${uptimerobot_alert_contact.default_alert_contact.id}
   }
 }
 

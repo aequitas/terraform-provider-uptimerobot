@@ -1,0 +1,48 @@
+package uptimerobot
+
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/louy/terraform-provider-uptimerobot/uptimerobot/api"
+)
+
+func dataSourceAlertContact() *schema.Resource {
+	return &schema.Resource{
+		Read: dataSourceAlertContactRead,
+		Schema: map[string]*schema.Schema{
+			"friendly_name": {Required: true, Type: schema.TypeString},
+			"type":          {Computed: true, Type: schema.TypeString},
+			"status":        {Computed: true, Type: schema.TypeString},
+			"value":         {Computed: true, Type: schema.TypeString},
+		},
+	}
+}
+
+func dataSourceAlertContactRead(d *schema.ResourceData, m interface{}) error {
+	alertContacts, err := m.(uptimerobotapi.UptimeRobotApiClient).GetAlertContacts()
+	if err != nil {
+		return err
+	}
+
+	friendlyName := d.Get("friendly_name").(string)
+
+	var alertContact uptimerobotapi.AlertContact
+
+	for _, a := range alertContacts {
+		if a.FriendlyName == friendlyName {
+			alertContact = a
+			break
+		}
+	}
+	if alertContact == (uptimerobotapi.AlertContact{}) {
+		return fmt.Errorf("Failed to find alert contact with name %s", friendlyName)
+	}
+
+	d.Set("friendly_name", alertContact.FriendlyName)
+	d.Set("type", alertContact.Type)
+	d.Set("status", alertContact.Status)
+	d.Set("value", alertContact.Value)
+
+	return nil
+}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 )
 
 var alertContactType = map[string]int{
@@ -35,6 +36,44 @@ type AlertContact struct {
 	Value        string `json:"value"`
 	Type         string
 	Status       string
+}
+
+func (client UptimeRobotApiClient) GetAlertContacts() (acs []AlertContact, err error) {
+	data := url.Values{}
+
+	body, err := client.MakeCall(
+		"getAlertContacts",
+		data.Encode(),
+	)
+	if err != nil {
+		return
+	}
+
+	alertcontacts, ok := body["alert_contacts"].([]interface{})
+	if !ok {
+		j, _ := json.Marshal(body)
+		err = errors.New("Unknown response from the server: " + string(j))
+		return
+	}
+
+	for _, i := range alertcontacts {
+		alertcontact := i.(map[string]interface{})
+		id, e := strconv.Atoi(alertcontact["id"].(string))
+		if e != nil {
+			err = e
+			return
+		}
+		ac := AlertContact{
+			id,
+			alertcontact["friendly_name"].(string),
+			alertcontact["value"].(string),
+			intToString(alertContactType, int(alertcontact["type"].(float64))),
+			intToString(alertContactStatus, int(alertcontact["status"].(float64))),
+		}
+		acs = append(acs, ac)
+	}
+
+	return
 }
 
 func (client UptimeRobotApiClient) GetAlertContact(id int) (ac AlertContact, err error) {
